@@ -19,7 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     # test github
-    # test github3
     path("admin/", admin.site.urls),
     path("api/", include("account.urls.oj")),
     path("api/", include("problem.urls.oj")),

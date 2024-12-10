@@ -2,6 +2,7 @@ from django.contrib import auth
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
 
+from problem.models import StudyPlan
 from ..models import User, Following
 from ..serializers import *
 from utils.api import *
@@ -78,7 +79,7 @@ class UserRegisterAPI(APIView):
             user.save()
 
             avatar = ImageCode.image_base64(user.avatar)
-            data = UserLogInformation(user).data
+            data = UserLogInformationSerializer(user).data
             data['avatar'] = avatar
             return success(data)
         except Exception:
@@ -95,7 +96,7 @@ class UserLoginAPI(APIView):
         else:
             auth.login(request, user)
             avatar = ImageCode.image_base64(user.avatar)
-            data = UserLogInformation(user).data
+            data = UserLogInformationSerializer(user).data
             data['avatar'] = avatar
             return success(data)
 
@@ -237,11 +238,22 @@ class UserFollowerAPI(APIView):
         return success(Rserializer.data)
 
 class StudyPlanAPI(APIView):
-    def get(self, request, user_id):
+    def get(self, request, id):
         if not request.user.is_authenticated:
             return fail(msg = "未登录")
 
+        user = request.user
+        if user.id != id:
+            return fail(msg = "无权获取他人做题计划")
 
+        userStudyPlan = StudyPlan.objects.filter(user=user)
+        problemList = []
+        for plan in userStudyPlan:
+            problemList.append(plan.problem)
+
+        Rserializer = StudyPlanSerializer(problemList, many=True, context={'user': user})
+
+        return success(Rserializer.data)
 
 class UserProfileChangeAPI(APIView):
     def put(self, request):
@@ -283,21 +295,24 @@ class UserAvatarChangeAPI(APIView):
 
 class UserPasswordChangeAPI(APIView):
     def put(self, request):
-        data = request.data
-        try:
-            user = User.objects.get(id=data['user_id'])
-        except User.DoesNotExist:
-            return fail(msg = "User not found")
-
         if not request.user.is_authenticated:
-            return fail(msg = "No permission to change")
-        elif request.user.id != data["user_id"]:
-            return fail(msg = "No permission to change")
+            return fail(msg = '未登录')
 
-        user.set_password(data["password"])
+        data = request.data
+        user = request.user
+        if user.id != data.get('id'):
+            return fail(msg = '权限不足')
+
+        oldPassword = data.get('password_before')
+        newPassword = data.get('password_new')
+
+        if not user.check_password(oldPassword):
+            return fail(msg = "旧密码错误")
+
+        user.set_password(newPassword)
         user.save()
 
-        return success("success")
+        return success("修改成功")
 
 class UserPasswordForgetAPI(APIView):
     def put(self, request):

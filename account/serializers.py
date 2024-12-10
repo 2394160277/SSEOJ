@@ -1,7 +1,9 @@
+from django.db.models import Q
 from rest_framework import serializers
 
 from account.models import User, Following
-
+from problem.models import Problem
+from submission.models import Submission, JudgeStatus
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -73,7 +75,26 @@ class UserFollowingSerializer(serializers.ModelSerializer):
             return False
 
 
-class UserLogInformation(serializers.ModelSerializer):
+class UserLogInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'avatar', 'user_type')
+        fields = ['id', 'username', 'avatar', 'user_type']
+
+
+class StudyPlanSerializer(serializers.ModelSerializer):
+    pass_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Problem
+        fields = ['id', 'name', 'difficulty']
+
+    def get_pass_status(self, obj):
+        myself = self.context.get('user')
+
+        submissions = Submission.objects.filter(Q(problem = obj) & Q(user = myself))
+
+        for s in submissions:
+            if s.result == JudgeStatus.ACCEPTED:
+                return True
+
+        return False

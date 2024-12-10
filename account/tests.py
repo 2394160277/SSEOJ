@@ -332,3 +332,16 @@ class RegisterTests(TestCase):
         self.assertEqual(user.username, '1')
 
         return
+
+class StudyPlanTests(TestCase):
+    def setUp(self):
+        pass
+
+    def test_getStudyPlan1(self):
+        pass
+
+    def test_getStudyPlan2(self):
+        pass
+
+    def test_getStudyPlan3(self):
+        pass
